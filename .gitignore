@@ -1,0 +1,78 @@
+# ===================================================================
+# Logs and Runtime Files
+# ===================================================================
+# Log files
+*.log
+# Java VM crash logs
+hs_err_pid*
+
+# ===================================================================
+# Build Artifacts & Dependencies
+# ===================================================================
+# Maven build directory
+target/
+# Packaged applications
+*.jar
+*.war
+*.ear
+
+# NOTE: The Maven Wrapper JAR (maven-wrapper.jar) should NOT be ignored.
+# It's essential for ensuring a consistent build environment for all developers.
+# The user's original file incorrectly ignored this.
+
+# ===================================================================
+# IDE-specific Files
+# ===================================================================
+# STS / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+# VS Code
+.vscode/
+
+# ===================================================================
+# OS-specific Files
+# ===================================================================
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+
+# ===================================================================
+# Secrets & Environment Configuration
+# ===================================================================
+# Environment variables file
+.env
+# Ignore all profile-specific application properties/yml files
+application-*.properties
+application-*.yml
+# But DO commit the default dev and test profiles
+!application-dev.properties
+!application-dev.yml
+!application-test.properties
+!application-test.yml
+
+# ===================================================================
+# Miscellaneous
+# ===================================================================
+# Any local help files or notes that shouldn't be in the repo
+HELP.md
