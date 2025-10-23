@@ -1,4 +1,4 @@
-package com.aurionpro.studentmanagement.dto;
+package com.aurionpro.studentmanagement.dto.response;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,4 +1,4 @@
-package com.aurionpro.studentmanagement.dto;
+package com.aurionpro.studentmanagement.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
@@ -7,7 +7,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateStudentRequestDto {
+public class CreateStudentRequestDto {
+    @NotEmpty(message = "Student ID cannot be empty")
+    private String studentId;
+
     @NotEmpty(message = "First name is required")
     private String firstName;
 
