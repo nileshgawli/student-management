@@ -14,4 +14,8 @@ public interface StudentRepository extends JpaRepository<Student, String> {
 
     // Check if a student with the given ID exists
     boolean existsByStudentId(String studentId);
+    
+    // Check if a student with the given emaikl exits
+    boolean existsByEmail(String email);
+
 }
