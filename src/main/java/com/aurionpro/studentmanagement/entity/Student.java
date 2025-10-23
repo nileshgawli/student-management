@@ -1,7 +1,15 @@
 package com.aurionpro.studentmanagement.entity;
 
+import java.time.Instant;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,4 +48,14 @@ public class Student {
     @Column(name = "is_active", nullable = false)
     @Schema(description = "Indicates if the student record is active.", example = "true")
     private boolean isActive = true;
+    
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @Schema(description = "UTC timestamp when the student record was created.")
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    @Schema(description = "UTC timestamp when the student record was last updated.")
+    private Instant updatedAt;
 }

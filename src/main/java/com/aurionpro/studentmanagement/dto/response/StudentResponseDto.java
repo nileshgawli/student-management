@@ -1,5 +1,7 @@
 package com.aurionpro.studentmanagement.dto.response;
 
+import java.time.Instant;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,4 +15,6 @@ public class StudentResponseDto {
     private String department;
     private String year;
     private boolean isActive;
+    private Instant createdAt;
+    private Instant updatedAt;
 }
