@@ -1,5 +1,13 @@
 package com.aurionpro.studentmanagement.service.impl;
 
+import java.time.Instant;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
@@ -9,12 +17,6 @@ import com.aurionpro.studentmanagement.exception.ResourceNotFoundException;
 import com.aurionpro.studentmanagement.mapper.StudentMapper;
 import com.aurionpro.studentmanagement.repository.StudentRepository;
 import com.aurionpro.studentmanagement.service.StudentService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class StudentServiceImpl implements StudentService {
@@ -70,9 +72,10 @@ public class StudentServiceImpl implements StudentService {
 	}
 
 	@Override
-	public List<StudentResponseDto> getAllActiveStudents() {
-		return studentRepository.findAllByIsActiveTrue().stream().map(studentMapper::toDto)
-				.collect(Collectors.toList());
+	public Page<StudentResponseDto> getAllActiveStudents(int page, int size) {
+		Pageable pageable = PageRequest.of(page, size);
+		Page<Student> studentPage = studentRepository.findAllByIsActiveTrue(pageable);
+		return studentPage.map(studentMapper::toDto);
 	}
 
 	@Override
