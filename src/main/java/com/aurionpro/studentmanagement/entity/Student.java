@@ -1,28 +1,30 @@
 package com.aurionpro.studentmanagement.entity;
 
-import java.time.Instant;
-
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "students")
 @Getter
 @Setter
+@EntityListeners(AuditingEntityListener.class) // Enable JPA Auditing
 @Schema(description = "Represents a student enrolled in the institution.")
 public class Student {
 
     @Id
-    @Column(name = "student_id", nullable = false, unique = true)
-    @Schema(description = "Unique ID of the student.", example = "S001")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Auto-generated unique database identifier.", example = "1")
+    private Long id;
+
+    @Column(name = "student_id", nullable = false, unique = true, length = 100)
+    @Schema(description = "Unique business ID of the student.", example = "S001")
     private String studentId;
 
     @Column(name = "first_name", nullable = false)
@@ -37,18 +39,15 @@ public class Student {
     @Schema(description = "Email address of the student.", example = "nilesh.gawli@example.com")
     private String email;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "department", nullable = false)
-    @Schema(description = "Department in which the student is enrolled.", example = "Computer Science")
-    private String department;
-
-    @Column(name = "year", nullable = false)
-    @Schema(description = "Academic year of the student.", example = "Third Year")
-    private String year;
+    @Schema(description = "Department in which the student is enrolled.", example = "COMPUTER_SCIENCE")
+    private Department department;
 
     @Column(name = "is_active", nullable = false)
     @Schema(description = "Indicates if the student record is active.", example = "true")
     private boolean isActive = true;
-    
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     @Schema(description = "UTC timestamp when the student record was created.")

@@ -19,8 +19,7 @@ public class SwaggerConfig {
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Nilesh Gawli")
-                                .email("nilesh.gawli@aurionpro.com")
-                                .url("https://aurionpro.com"))
+                                .email("nilesh.gawli@aurionpro.com"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://springdoc.org")));

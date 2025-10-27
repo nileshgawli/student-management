@@ -1,13 +1,5 @@
 package com.aurionpro.studentmanagement.service.impl;
 
-import java.time.Instant;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
@@ -17,75 +9,110 @@ import com.aurionpro.studentmanagement.exception.ResourceNotFoundException;
 import com.aurionpro.studentmanagement.mapper.StudentMapper;
 import com.aurionpro.studentmanagement.repository.StudentRepository;
 import com.aurionpro.studentmanagement.service.StudentService;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class StudentServiceImpl implements StudentService {
 
-	private final StudentRepository studentRepository;
-	private final StudentMapper studentMapper;
+    private final StudentRepository studentRepository;
+    private final StudentMapper studentMapper;
 
-	public StudentServiceImpl(StudentRepository studentRepository, StudentMapper studentMapper) {
-		this.studentRepository = studentRepository;
-		this.studentMapper = studentMapper;
-	}
+    public StudentServiceImpl(StudentRepository studentRepository, StudentMapper studentMapper) {
+        this.studentRepository = studentRepository;
+        this.studentMapper = studentMapper;
+    }
 
-	@Override
-	@Transactional
-	public StudentResponseDto addStudent(CreateStudentRequestDto requestDto) {
-		if (studentRepository.existsByStudentId(requestDto.getStudentId())) {
-			throw new DuplicateResourceException(
-					"A student with ID '" + requestDto.getStudentId() + "' already exists.");
-		}
+    @Override
+    @Transactional(readOnly = true)
+    public Page<StudentResponseDto> getAllStudents(String filter, Boolean isActive, Pageable pageable) {
+        Specification<Student> spec = createSpecification(filter, isActive);
+        Page<Student> studentPage = studentRepository.findAll(spec, pageable);
+        return studentPage.map(studentMapper::toDto);
+    }
 
-		if (studentRepository.existsByEmail(requestDto.getEmail())) {
-			throw new DuplicateResourceException(
-					"A student with email '" + requestDto.getEmail() + "' already exists.");
-		}
+    @Override
+    @Transactional
+    public StudentResponseDto addStudent(CreateStudentRequestDto requestDto) {
+        if (studentRepository.existsByStudentId(requestDto.getStudentId())) {
+            throw new DuplicateResourceException("A student with ID '" + requestDto.getStudentId() + "' already exists.");
+        }
+        if (studentRepository.existsByEmail(requestDto.getEmail())) {
+            throw new DuplicateResourceException("A student with email '" + requestDto.getEmail() + "' already exists.");
+        }
 
-		Student student = studentMapper.toEntity(requestDto);
-		student.setCreatedAt(Instant.now());
-		Student savedStudent = studentRepository.save(student);
+        Student student = studentMapper.toEntity(requestDto);
+        student.setActive(true);
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDto(savedStudent);
+    }
 
-		return studentMapper.toDto(savedStudent);
-	}
+    @Override
+    @Transactional
+    public StudentResponseDto updateStudent(String studentId, UpdateStudentRequestDto requestDto) {
+        Student existingStudent = findStudentByBusinessId(studentId);
 
-	@Override
-	@Transactional
-	public StudentResponseDto updateStudent(String studentId, UpdateStudentRequestDto requestDto) {
-		Student existingStudent = studentRepository.findById(studentId)
-				.orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + studentId));
+        String newEmail = requestDto.getEmail();
+        if (!newEmail.equalsIgnoreCase(existingStudent.getEmail())) {
+            if (studentRepository.existsByEmail(newEmail)) {
+                throw new DuplicateResourceException("Email '" + newEmail + "' is already in use by another student.");
+            }
+        }
 
-		String newEmail = requestDto.getEmail();
-		String currentEmail = existingStudent.getEmail();
+        studentMapper.updateEntityFromDto(requestDto, existingStudent);
+        Student updatedStudent = studentRepository.save(existingStudent);
+        return studentMapper.toDto(updatedStudent);
+    }
 
-		if (newEmail != null && !newEmail.equalsIgnoreCase(currentEmail)) {
-			if (studentRepository.existsByEmail(newEmail)) {
-				throw new DuplicateResourceException("Email '" + newEmail + "' is already in use by another student.");
-			}
-		}
+    @Override
+    @Transactional
+    public void softDeleteStudent(String studentId) {
+        Student student = findStudentByBusinessId(studentId);
+        student.setActive(false);
+        studentRepository.save(student);
+    }
 
-		studentMapper.updateEntityFromDto(requestDto, existingStudent);
-		existingStudent.setUpdatedAt(Instant.now());
+    @Override
+    @Transactional
+    public StudentResponseDto toggleStudentStatus(String studentId) {
+        Student student = findStudentByBusinessId(studentId);
+        student.setActive(!student.isActive()); // Invert the current status
+        Student updatedStudent = studentRepository.save(student);
+        return studentMapper.toDto(updatedStudent);
+    }
 
-		Student updatedStudent = studentRepository.save(existingStudent);
-		return studentMapper.toDto(updatedStudent);
-	}
+    private Student findStudentByBusinessId(String studentId) {
+        return studentRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + studentId));
+    }
 
-	@Override
-	public Page<StudentResponseDto> getAllActiveStudents(int page, int size) {
-		Pageable pageable = PageRequest.of(page, size);
-		Page<Student> studentPage = studentRepository.findAllByIsActiveTrue(pageable);
-		return studentPage.map(studentMapper::toDto);
-	}
+    private Specification<Student> createSpecification(String filter, Boolean isActive) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> mainPredicates = new ArrayList<>();
 
-	@Override
-	@Transactional
-	public void softDeleteStudent(String studentId) {
-		Student student = studentRepository.findById(studentId)
-				.orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + studentId));
+            if (isActive != null) {
+                mainPredicates.add(criteriaBuilder.equal(root.get("isActive"), isActive));
+            }
 
-		student.setActive(false);
-		student.setUpdatedAt(Instant.now());
-		studentRepository.save(student);
-	}
+            if (StringUtils.hasText(filter)) {
+                String pattern = "%" + filter.toLowerCase() + "%";
+                List<Predicate> searchPredicates = new ArrayList<>();
+                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("studentId")), pattern));
+                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), pattern));
+                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), pattern));
+                searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), pattern));
+                mainPredicates.add(criteriaBuilder.or(searchPredicates.toArray(new Predicate[0])));
+            }
+
+            return criteriaBuilder.and(mainPredicates.toArray(new Predicate[0]));
+        };
+    }
 }

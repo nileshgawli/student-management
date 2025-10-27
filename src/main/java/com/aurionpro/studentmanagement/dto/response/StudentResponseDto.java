@@ -1,19 +1,20 @@
 package com.aurionpro.studentmanagement.dto.response;
 
-import java.time.Instant;
-
+import com.aurionpro.studentmanagement.entity.Department;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.Instant;
 
 @Getter
 @Setter
 public class StudentResponseDto {
-    private String studentId;
+    private Long id; 
+    private String studentId; 
     private String firstName;
     private String lastName;
     private String email;
-    private String department;
-    private String year;
+    private Department department;
     private boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
