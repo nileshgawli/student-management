@@ -9,6 +9,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "students")
@@ -39,10 +41,19 @@ public class Student {
     @Schema(description = "Email address of the student.", example = "nilesh.gawli@example.com")
     private String email;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "department", nullable = false)
-    @Schema(description = "Department in which the student is enrolled.", example = "COMPUTER_SCIENCE")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", nullable = false)
+    @Schema(description = "The department to which the student is assigned.")
     private Department department;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "student_courses",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    @Schema(description = "The set of courses in which the student is enrolled.")
+    private Set<Course> courses = new HashSet<>();
 
     @Column(name = "is_active", nullable = false)
     @Schema(description = "Indicates if the student record is active.", example = "true")
