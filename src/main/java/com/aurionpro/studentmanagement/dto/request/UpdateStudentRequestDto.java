@@ -1,11 +1,12 @@
 package com.aurionpro.studentmanagement.dto.request;
 
-import com.aurionpro.studentmanagement.entity.Department;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,6 +22,8 @@ public class UpdateStudentRequestDto {
     @Email(message = "Email format is invalid")
     private String email;
 
-    @NotNull(message = "Department is required")
-    private Department department;
+    @NotNull(message = "Department ID is required")
+    private Long departmentId; 
+
+    private List<Long> courseIds;
 }
