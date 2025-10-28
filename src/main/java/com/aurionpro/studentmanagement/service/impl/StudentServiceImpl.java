@@ -3,13 +3,18 @@ package com.aurionpro.studentmanagement.service.impl;
 import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
+import com.aurionpro.studentmanagement.entity.Course;
+import com.aurionpro.studentmanagement.entity.Department;
 import com.aurionpro.studentmanagement.entity.Student;
 import com.aurionpro.studentmanagement.exception.DuplicateResourceException;
 import com.aurionpro.studentmanagement.exception.ResourceNotFoundException;
 import com.aurionpro.studentmanagement.mapper.StudentMapper;
+import com.aurionpro.studentmanagement.repository.CourseRepository;
+import com.aurionpro.studentmanagement.repository.DepartmentRepository;
 import com.aurionpro.studentmanagement.repository.StudentRepository;
 import com.aurionpro.studentmanagement.service.StudentService;
 import jakarta.persistence.criteria.Predicate;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,18 +23,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
+    private final DepartmentRepository departmentRepository;
+    private final CourseRepository courseRepository;
     private final StudentMapper studentMapper;
-
-    public StudentServiceImpl(StudentRepository studentRepository, StudentMapper studentMapper) {
-        this.studentRepository = studentRepository;
-        this.studentMapper = studentMapper;
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -50,6 +55,19 @@ public class StudentServiceImpl implements StudentService {
         }
 
         Student student = studentMapper.toEntity(requestDto);
+        
+        Department department = departmentRepository.findById(requestDto.getDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with ID: " + requestDto.getDepartmentId()));
+        student.setDepartment(department);
+
+        if (requestDto.getCourseIds() != null && !requestDto.getCourseIds().isEmpty()) {
+            List<Course> courses = courseRepository.findAllById(requestDto.getCourseIds());
+            if (courses.size() != requestDto.getCourseIds().size()) {
+                 throw new ResourceNotFoundException("One or more courses not found.");
+            }
+            student.setCourses(new HashSet<>(courses));
+        }
+
         student.setActive(true);
         Student savedStudent = studentRepository.save(student);
         return studentMapper.toDto(savedStudent);
@@ -68,10 +86,25 @@ public class StudentServiceImpl implements StudentService {
         }
 
         studentMapper.updateEntityFromDto(requestDto, existingStudent);
+
+        Department department = departmentRepository.findById(requestDto.getDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with ID: " + requestDto.getDepartmentId()));
+        existingStudent.setDepartment(department);
+        
+        Set<Course> courses = new HashSet<>();
+        if (requestDto.getCourseIds() != null && !requestDto.getCourseIds().isEmpty()) {
+             List<Course> foundCourses = courseRepository.findAllById(requestDto.getCourseIds());
+             if (foundCourses.size() != requestDto.getCourseIds().size()) {
+                 throw new ResourceNotFoundException("One or more courses not found.");
+            }
+            courses.addAll(foundCourses);
+        }
+        existingStudent.setCourses(courses);
+
         Student updatedStudent = studentRepository.save(existingStudent);
         return studentMapper.toDto(updatedStudent);
     }
-
+    
     @Override
     @Transactional
     public void softDeleteStudent(String studentId) {
