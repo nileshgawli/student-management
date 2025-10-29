@@ -12,13 +12,9 @@ import org.mapstruct.Mappings;
 @Mapper(componentModel = "spring", uses = {DepartmentMapper.class, CourseMapper.class}) // Add this
 public interface StudentMapper {
 
-    // This handles the Student -> StudentResponseDto mapping automatically
-    // because the field names (department, courses) match.
     StudentResponseDto toDto(Student student);
 
     @Mappings({
-        // We explicitly ignore departmentId and courseIds because they don't exist on the Student entity.
-        // We handle mapping these to entities in the service layer.
         @Mapping(target = "id", ignore = true),
         @Mapping(target = "department", ignore = true),
         @Mapping(target = "courses", ignore = true),
@@ -30,7 +26,6 @@ public interface StudentMapper {
 
 
     @Mappings({
-        // Similar to above, we ignore fields that aren't meant to be updated directly from the DTO.
         @Mapping(target = "id", ignore = true),
         @Mapping(target = "studentId", ignore = true),
         @Mapping(target = "department", ignore = true),

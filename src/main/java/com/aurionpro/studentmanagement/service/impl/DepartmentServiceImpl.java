@@ -5,6 +5,7 @@ import com.aurionpro.studentmanagement.mapper.DepartmentMapper;
 import com.aurionpro.studentmanagement.repository.DepartmentRepository;
 import com.aurionpro.studentmanagement.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j; // Import
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepository departmentRepository;
@@ -21,9 +23,12 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDto> getAllDepartments() {
-        return departmentRepository.findAll()
+        log.info("Fetching all departments from the database.");
+        List<DepartmentDto> departments = departmentRepository.findAll()
                 .stream()
                 .map(departmentMapper::toDto)
                 .collect(Collectors.toList());
+        log.info("Found {} departments.", departments.size());
+        return departments;
     }
 }

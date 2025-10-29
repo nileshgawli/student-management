@@ -76,3 +76,7 @@ application-*.yml
 # ===================================================================
 # Any local help files or notes that shouldn't be in the repo
 HELP.md
+
+logs/
+*.log
+*.gz

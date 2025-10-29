@@ -16,6 +16,7 @@ import com.aurionpro.studentmanagement.repository.StudentRepository;
 import com.aurionpro.studentmanagement.service.StudentService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,7 +33,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StudentServiceImpl implements StudentService {
+
+    /**
+     * Private record to hold the results of a successful validation.
+     * This is declared at the top of the class to be visible to all methods.
+     */
+    private record ValidatedEntities(Department department, Set<Course> courses) {}
 
     private final StudentRepository studentRepository;
     private final DepartmentRepository departmentRepository;
@@ -42,11 +50,15 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional
     public StudentResponseDto addStudent(CreateStudentRequestDto requestDto) {
+        log.info("Attempting to add a new student with studentId: {}", requestDto.getStudentId());
+
         if (studentRepository.existsByStudentId(requestDto.getStudentId())) {
+            log.warn("Failed to add student. Duplicate studentId: {}", requestDto.getStudentId());
             throw new DuplicateResourceException("A student with ID '" + requestDto.getStudentId() + "' already exists.");
         }
         
         ValidatedEntities validated = validateStudentData(null, requestDto.getEmail(), requestDto.getDepartmentId(), requestDto.getCourseIds());
+        log.debug("Student data validation successful for studentId: {}", requestDto.getStudentId());
 
         Student student = studentMapper.toEntity(requestDto);
         student.setDepartment(validated.department());
@@ -54,55 +66,55 @@ public class StudentServiceImpl implements StudentService {
         student.setActive(true);
         
         Student savedStudent = studentRepository.save(student);
+        log.info("Successfully added new student with database ID: {} and studentId: {}", savedStudent.getId(), savedStudent.getStudentId());
+        
         return studentMapper.toDto(savedStudent);
     }
 
     @Override
     @Transactional
     public StudentResponseDto updateStudent(String studentId, UpdateStudentRequestDto requestDto) {
+        log.info("Attempting to update student with studentId: {}", studentId);
+
         Student existingStudent = findStudentByBusinessId(studentId);
+        log.debug("Found student to update with database ID: {}", existingStudent.getId());
         
         ValidatedEntities validated = validateStudentData(existingStudent.getEmail(), requestDto.getEmail(), requestDto.getDepartmentId(), requestDto.getCourseIds());
+        log.debug("Student data validation successful for update of studentId: {}", studentId);
 
         studentMapper.updateEntityFromDto(requestDto, existingStudent);
         existingStudent.setDepartment(validated.department());
         existingStudent.setCourses(validated.courses());
 
         Student updatedStudent = studentRepository.save(existingStudent);
+        log.info("Successfully updated student with studentId: {}", updatedStudent.getStudentId());
+
         return studentMapper.toDto(updatedStudent);
     }
 
-    private record ValidatedEntities(Department department, Set<Course> courses) {}
-
     private ValidatedEntities validateStudentData(String currentEmail, String newEmail, Long departmentId, List<Long> courseIds) {
+        log.debug("Initiating validation for email: {}, departmentId: {}", newEmail, departmentId);
         List<String> errors = new ArrayList<>();
 
         if ((currentEmail == null || !currentEmail.equalsIgnoreCase(newEmail)) && studentRepository.existsByEmail(newEmail)) {
             errors.add("Email '" + newEmail + "' is already in use by another student.");
         }
 
-        Department department = departmentRepository.findById(departmentId)
-                .orElse(null);
+        Department department = departmentRepository.findById(departmentId).orElse(null);
         if (department == null) {
             errors.add("Department with ID '" + departmentId + "' does not exist.");
         }
 
         Set<Course> courses = new HashSet<>();
         if (!CollectionUtils.isEmpty(courseIds)) {
-            // Use the new, hyper-efficient query to fetch courses and their departments in one go.
             List<Course> foundCourses = courseRepository.findByIdInWithDepartment(courseIds);
             
-            // 1. Check for any courses that were requested but not found.
             if (foundCourses.size() != courseIds.size()) {
                 Set<Long> foundCourseIds = foundCourses.stream().map(Course::getId).collect(Collectors.toSet());
-                List<Long> missingIds = courseIds.stream()
-                        .filter(id -> !foundCourseIds.contains(id))
-                        .toList();
+                List<Long> missingIds = courseIds.stream().filter(id -> !foundCourseIds.contains(id)).toList();
                 errors.add("The following course IDs do not exist: " + missingIds);
             }
 
-            // 2. If the department is valid, check the business rule.
-            // This is now safe and fast because the department data for each course is already loaded.
             if (department != null) {
                 for (Course course : foundCourses) {
                     if (!course.getDepartment().getId().equals(department.getId())) {
@@ -114,43 +126,55 @@ public class StudentServiceImpl implements StudentService {
         }
 
         if (!errors.isEmpty()) {
+            log.warn("Validation failed with {} errors: {}", errors.size(), errors);
             throw new ValidationException("Student data is invalid. Please correct the following issues.", errors);
         }
-
-        // We can only reach here if department is not null, so this is safe.
+        log.debug("Validation successful.");
         return new ValidatedEntities(department, courses);
     }
     
-    // ... other methods (getAllStudents, softDelete, toggleStatus, etc.) remain unchanged ...
-
     @Override
     @Transactional(readOnly = true)
     public Page<StudentResponseDto> getAllStudents(String filter, Boolean isActive, Pageable pageable) {
+        log.info("Fetching students page number: {}, page size: {}, filter: '{}', isActive: {}",
+            pageable.getPageNumber(), pageable.getPageSize(), filter, isActive);
+        
         Specification<Student> spec = createSpecification(filter, isActive);
         Page<Student> studentPage = studentRepository.findAll(spec, pageable);
+
+        log.info("Found {} students on page {}", studentPage.getNumberOfElements(), pageable.getPageNumber());
         return studentPage.map(studentMapper::toDto);
     }
 
     @Override
     @Transactional
     public void softDeleteStudent(String studentId) {
+        log.info("Attempting to soft delete student with studentId: {}", studentId);
         Student student = findStudentByBusinessId(studentId);
         student.setActive(false);
         studentRepository.save(student);
+        log.info("Successfully soft-deleted student with studentId: {}", studentId);
     }
 
     @Override
     @Transactional
     public StudentResponseDto toggleStudentStatus(String studentId) {
+        log.info("Attempting to toggle status for student with studentId: {}", studentId);
         Student student = findStudentByBusinessId(studentId);
-        student.setActive(!student.isActive());
+        boolean currentStatus = student.isActive();
+        student.setActive(!currentStatus);
         Student updatedStudent = studentRepository.save(student);
+        log.info("Successfully toggled status for studentId: {} from {} to {}", studentId, currentStatus, updatedStudent.isActive());
         return studentMapper.toDto(updatedStudent);
     }
 
     private Student findStudentByBusinessId(String studentId) {
+        log.debug("Searching for student with studentId: {}", studentId);
         return studentRepository.findByStudentId(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + studentId));
+                .orElseThrow(() -> {
+                    log.warn("Student not found with studentId: {}", studentId);
+                    return new ResourceNotFoundException("Student not found with ID: " + studentId);
+                });
     }
 
     private Specification<Student> createSpecification(String filter, Boolean isActive) {
