@@ -7,9 +7,21 @@ import io.swagger.v3.oas.models.info.License;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration class for Swagger (OpenAPI 3) documentation.
+ * This class sets up a Spring bean that provides metadata about the API,
+ * such as its title, description, version, contact information, and license.
+ */
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * Creates and configures the primary {@link OpenAPI} bean.
+     * This bean is used by the springdoc-openapi library to generate the
+     * interactive API documentation UI.
+     *
+     * @return A fully configured {@link OpenAPI} object with API metadata.
+     */
     @Bean
     public OpenAPI studentManagementOpenAPI() {
         return new OpenAPI()
