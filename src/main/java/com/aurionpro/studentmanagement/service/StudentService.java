@@ -3,6 +3,8 @@ package com.aurionpro.studentmanagement.service;
 import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -63,4 +65,24 @@ public interface StudentService {
 	 * @throws com.aurionpro.studentmanagement.exception.ResourceNotFoundException if no student is found with the given ID.
 	 */
 	StudentResponseDto toggleStudentStatus(String studentId);
+
+	/**
+	 * Generates an Excel file containing a list of students based on filter criteria.
+	 *
+	 * @param filter   A string for searching across multiple fields. Can be null.
+	 * @param isActive A boolean to filter by active status. Can be null.
+	 * @param response The HttpServletResponse to which the Excel file will be written.
+	 * @throws java.io.IOException if an I/O error occurs.
+	 */
+	void generateStudentsExcel(String filter, Boolean isActive, HttpServletResponse response) throws IOException;
+
+	/**
+	 * Generates a CSV file containing a list of students based on filter criteria.
+	 *
+	 * @param filter   A string for searching across multiple fields. Can be null.
+	 * @param isActive A boolean to filter by active status. Can be null.
+	 * @param response The HttpServletResponse to which the CSV file will be written.
+	 * @throws java.io.IOException if an I/O error occurs.
+	 */
+	void generateStudentsCsv(String filter, Boolean isActive, HttpServletResponse response) throws IOException;
 }

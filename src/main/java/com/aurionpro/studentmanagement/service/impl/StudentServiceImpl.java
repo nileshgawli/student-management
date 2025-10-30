@@ -13,23 +13,26 @@ import com.aurionpro.studentmanagement.mapper.StudentMapper;
 import com.aurionpro.studentmanagement.repository.CourseRepository;
 import com.aurionpro.studentmanagement.repository.DepartmentRepository;
 import com.aurionpro.studentmanagement.repository.StudentRepository;
+import com.aurionpro.studentmanagement.service.StudentExportService;
 import com.aurionpro.studentmanagement.service.StudentService;
 import jakarta.persistence.criteria.Predicate;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
-
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Implementation of the {@link StudentService} interface.
@@ -51,6 +54,7 @@ public class StudentServiceImpl implements StudentService {
     private final DepartmentRepository departmentRepository;
     private final CourseRepository courseRepository;
     private final StudentMapper studentMapper;
+    private final StudentExportService studentExportService;
 
     /**
      * {@inheritDoc}
@@ -216,6 +220,37 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toDto(updatedStudent);
     }
 
+
+    /**
+     * {@inheritDoc}
+     * This implementation fetches the filtered list of all students (without pagination)
+     * and delegates the generation of the Excel file to the {@link StudentExportService}.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public void generateStudentsExcel(String filter, Boolean isActive, HttpServletResponse response) throws IOException {
+        log.info("Generating Excel report with filter: '{}', isActive: {}", filter, isActive);
+        Specification<Student> spec = createSpecification(filter, isActive);
+        // Fetch all matching students, sorted by ID for consistent ordering.
+        List<Student> students = studentRepository.findAll(spec, Sort.by("id"));
+        studentExportService.exportToExcel(students, response);
+    }
+
+    /**
+     * {@inheritDoc}
+     * This implementation fetches the filtered list of all students (without pagination)
+     * and delegates the generation of the CSV file to the {@link StudentExportService}.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public void generateStudentsCsv(String filter, Boolean isActive, HttpServletResponse response) throws IOException {
+        log.info("Generating CSV report with filter: '{}', isActive: {}", filter, isActive);
+        Specification<Student> spec = createSpecification(filter, isActive);
+        // Fetch all matching students, sorted by ID for consistent ordering.
+        List<Student> students = studentRepository.findAll(spec, Sort.by("id"));
+        studentExportService.exportToCsv(students, response);
+    }
+    
     /**
      * A helper method to find a {@link Student} by their business ID.
      *
