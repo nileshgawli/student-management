@@ -1,20 +1,19 @@
 package com.aurionpro.studentmanagement.repository;
 
+import com.aurionpro.studentmanagement.entity.Course;
 import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import com.aurionpro.studentmanagement.entity.Course;
 
 /**
  * Spring Data JPA repository for {@link Course} entities.
  * This interface provides standard CRUD operations and allows for custom query definitions.
  */
 @Repository
-public interface CourseRepository extends JpaRepository<Course, Long> {
+public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course> {
 
     /**
      * Finds all courses associated with a specific department ID.
@@ -23,6 +22,15 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      * @return A list of {@link Course} entities belonging to the specified department.
      */
     List<Course> findByDepartmentId(Long departmentId);
+
+    /**
+     * Finds all courses associated with a specific department ID, filtering by active status.
+     *
+     * @param departmentId The ID of the department.
+     * @param isActive     The active status to filter by.
+     * @return A list of matching {@link Course} entities.
+     */
+    List<Course> findByDepartmentIdAndIsActive(Long departmentId, boolean isActive);
 
     /**
      * Finds all courses by their IDs and eagerly fetches their associated Department entities
