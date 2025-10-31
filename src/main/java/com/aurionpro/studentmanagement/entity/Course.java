@@ -47,4 +47,12 @@ public class Course {
     @JoinColumn(name = "department_id", nullable = false)
     @Schema(description = "The department that offers this course.")
     private Department department;
+
+    /**
+     * A flag indicating whether the course's record is active.
+     * Used for soft-deleting records instead of permanent deletion. Defaults to true.
+     */
+    @Column(name = "is_active", nullable = false)
+    @Schema(description = "Indicates if the course record is active.", example = "true")
+    private boolean isActive = true;
 }

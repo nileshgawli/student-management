@@ -33,4 +33,12 @@ public class Department {
     @Column(name = "name", nullable = false, unique = true)
     @Schema(description = "The name of the department.", example = "COMPUTER_SCIENCE")
     private String name;
+
+    /**
+     * A flag indicating whether the department's record is active.
+     * Used for soft-deleting records instead of permanent deletion. Defaults to true.
+     */
+    @Column(name = "is_active", nullable = false)
+    @Schema(description = "Indicates if the department record is active.", example = "true")
+    private boolean isActive = true;
 }
