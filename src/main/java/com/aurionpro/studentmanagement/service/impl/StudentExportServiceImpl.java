@@ -120,34 +120,45 @@ public class StudentExportServiceImpl implements StudentExportService {
       log.info("CSV export completed successfully.");
     }
   }
+  
   @Override
   public void exportToPdf(List<Student> students, HttpServletResponse response) throws IOException, JRException {
-    log.info("Starting PDF export for {} students.", students.size());
+      log.info("Starting PDF export for {} students.", students.size());
 
-    // Prepare data for JasperReports
-    List<Map<String, Object>> dataSource = students.stream().map(student -> {
-        Map<String, Object> map = new HashMap<>();
-        map.put("studentId", student.getStudentId());
-        map.put("name", student.getFirstName() + " " + student.getLastName());
-        map.put("email", student.getEmail());
-        map.put("department", student.getDepartment().getName().replace("_", " "));
-        map.put("courses", student.getCourses().stream().map(Course::getName).collect(Collectors.joining(", ")));
-        map.put("status", student.isActive() ? "Active" : "Inactive");
-        return map;
-    }).collect(Collectors.toList());
+      // Prepare data for JasperReports
+      List<Map<String, Object>> dataSource = students.stream().map(student -> {
+          Map<String, Object> map = new HashMap<>();
+          map.put("studentId", student.getStudentId());
+          map.put("name", student.getFirstName() + " " + student.getLastName());
+          map.put("email", student.getEmail());
+          map.put("department", student.getDepartment().getName().replace("_", " "));
+          map.put("courses", student.getCourses().stream().map(Course::getName).collect(Collectors.joining(", ")));
+          map.put("status", student.isActive() ? "Active" : "Inactive");
+          return map;
+      }).collect(Collectors.toList());
 
-    // Load and compile the JRXML template
-    InputStream reportStream = getClass().getResourceAsStream("/reports/student-list.jrxml");
-    JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+      // Load and compile the JRXML template
+      InputStream reportStream = getClass().getResourceAsStream("/reports/student-list.jrxml");
+      if (reportStream == null) {
+          log.error("JRXML template not found!");
+          throw new JRException("Resource not found: /reports/student-list.jrxml");
+      }
+      JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
 
-    JRBeanCollectionDataSource beanColDataSource = new JRBeanCollectionDataSource(dataSource);
-    Map<String, Object> parameters = new HashMap<>();
+      JRBeanCollectionDataSource beanColDataSource = new JRBeanCollectionDataSource(dataSource);
+      
+      Map<String, Object> parameters = new HashMap<>();
+      InputStream logoStream = getClass().getResourceAsStream("/images/aurionpro-logo.png");
+      if (logoStream == null) {
+          log.error("Logo image not found in resources! The report will be generated without a logo.");
+      }
+      parameters.put("LOGO_IMG", logoStream);
 
-    // Fill the report
-    JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, beanColDataSource);
+      // Fill the report with data and parameters
+      JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, beanColDataSource);
 
-    // Export the report to PDF and write to the response
-    JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
-    log.info("PDF export completed successfully.");
+      // Export the report to PDF and write to the response
+      JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
+      log.info("PDF export completed successfully.");
   }
 }
