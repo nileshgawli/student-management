@@ -1,5 +1,21 @@
 package com.aurionpro.studentmanagement.service.impl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
+
 import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
 import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
@@ -16,24 +32,12 @@ import com.aurionpro.studentmanagement.repository.DepartmentRepository;
 import com.aurionpro.studentmanagement.repository.StudentRepository;
 import com.aurionpro.studentmanagement.service.StudentExportService;
 import com.aurionpro.studentmanagement.service.StudentService;
+
 import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
+import net.sf.jasperreports.engine.JRException;
 
 /**
  * Implementation of the {@link StudentService} interface.
@@ -241,5 +245,14 @@ public class StudentServiceImpl implements StudentService {
             }
             return criteriaBuilder.and(mainPredicates.toArray(new Predicate[0]));
         };
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public void generateStudentsPdf(String filter, Boolean isActive, HttpServletResponse response) throws IOException, JRException {
+        log.info("Generating PDF report with filter: '{}', isActive: {}", filter, isActive);
+        Specification<Student> spec = createSpecification(filter, isActive);
+        List<Student> students = studentRepository.findAll(spec, Sort.by("id"));
+        studentExportService.exportToPdf(students, response);
     }
 }

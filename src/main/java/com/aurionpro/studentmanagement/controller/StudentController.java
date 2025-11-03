@@ -1,18 +1,10 @@
 package com.aurionpro.studentmanagement.controller;
 
-import com.aurionpro.studentmanagement.dto.ApiResponse;
-import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
-import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
-import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
-import com.aurionpro.studentmanagement.service.StudentService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +22,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.aurionpro.studentmanagement.dto.ApiResponse;
+import com.aurionpro.studentmanagement.dto.request.CreateStudentRequestDto;
+import com.aurionpro.studentmanagement.dto.request.UpdateStudentRequestDto;
+import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
+import com.aurionpro.studentmanagement.service.StudentService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import net.sf.jasperreports.engine.JRException;
 
 /**
  * REST controller for handling all student-related API requests.
@@ -184,4 +188,22 @@ public class StudentController {
 
         studentService.generateStudentsCsv(filter, isActive, response);
     }
+    
+    @Operation(summary = "Download students as a PDF file", description = "Generates and downloads a PDF file containing students based on the provided filters.")
+    @GetMapping("/download/pdf")
+    public void downloadStudentsAsPdf(
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) Boolean isActive,
+            HttpServletResponse response
+    ) throws IOException, JRException {
+        response.setContentType("application/pdf");
+        DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        String currentDateTime = dateFormatter.format(new Date());
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=students_" + currentDateTime + ".pdf";
+        response.setHeader(headerKey, headerValue);
+
+        studentService.generateStudentsPdf(filter, isActive, response);
+    }
+
 }
