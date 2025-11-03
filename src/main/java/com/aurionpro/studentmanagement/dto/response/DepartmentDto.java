@@ -19,4 +19,9 @@ public class DepartmentDto {
      * The name of the department.
      */
     private String name;
+
+    /**
+     * The current status of the department record (true for active, false for inactive).
+     */
+    private boolean isActive;
 }

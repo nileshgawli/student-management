@@ -25,4 +25,9 @@ public class CourseDto {
      * A brief description of the course.
      */
     private String description;
+
+    /**
+     * The current status of the course record (true for active, false for inactive).
+     */
+    private boolean isActive;
 }

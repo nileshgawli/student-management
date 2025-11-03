@@ -6,6 +6,7 @@ import com.aurionpro.studentmanagement.dto.response.StudentResponseDto;
 import com.aurionpro.studentmanagement.entity.Course;
 import com.aurionpro.studentmanagement.entity.Department;
 import com.aurionpro.studentmanagement.entity.Student;
+import com.aurionpro.studentmanagement.exception.BusinessRuleException;
 import com.aurionpro.studentmanagement.exception.DuplicateResourceException;
 import com.aurionpro.studentmanagement.exception.ResourceNotFoundException;
 import com.aurionpro.studentmanagement.exception.ValidationException;
@@ -56,12 +57,6 @@ public class StudentServiceImpl implements StudentService {
     private final StudentMapper studentMapper;
     private final StudentExportService studentExportService;
 
-    /**
-     * {@inheritDoc}
-     * This implementation first checks for the uniqueness of the student ID. It then validates
-     * the department and course data. If validation passes, it maps the DTO to a new Student entity,
-     * sets its relationships, saves it to the database, and returns the mapped DTO.
-     */
     @Override
     @Transactional
     public StudentResponseDto addStudent(CreateStudentRequestDto requestDto) {
@@ -86,12 +81,6 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toDto(savedStudent);
     }
 
-    /**
-     * {@inheritDoc}
-     * This implementation begins by fetching the existing student record. It then validates the incoming
-     * data against business rules (e.g., email uniqueness, department/course validity). Upon successful
-     * validation, it updates the entity with new data, saves the changes, and returns the updated record as a DTO.
-     */
     @Override
     @Transactional
     public StudentResponseDto updateStudent(String studentId, UpdateStudentRequestDto requestDto) {
@@ -117,8 +106,8 @@ public class StudentServiceImpl implements StudentService {
      * A central validation method for student data, used in both create and update operations.
      * It performs the following checks:
      * 1.  Ensures the new email is not already used by another student.
-     * 2.  Verifies that the specified department exists.
-     * 3.  Verifies that all specified courses exist.
+     * 2.  Verifies that the specified department exists and is active.
+     * 3.  Verifies that all specified courses exist and are active.
      * 4.  Ensures that all specified courses belong to the specified department.
      *
      * @param currentEmail The current email of the student being updated, or null if creating a new student.
@@ -127,6 +116,7 @@ public class StudentServiceImpl implements StudentService {
      * @param courseIds    A list of course IDs to validate.
      * @return A {@link ValidatedEntities} record containing the fetched Department and a Set of Courses.
      * @throws ValidationException if any validation rule fails, containing a list of all errors.
+     * @throws BusinessRuleException if a business rule (like assigning to an inactive department) is violated.
      */
     private ValidatedEntities validateStudentData(String currentEmail, String newEmail, Long departmentId, List<Long> courseIds) {
         log.debug("Initiating validation for email: {}, departmentId: {}", newEmail, departmentId);
@@ -136,9 +126,11 @@ public class StudentServiceImpl implements StudentService {
             errors.add("Email '" + newEmail + "' is already in use by another student.");
         }
 
-        Department department = departmentRepository.findById(departmentId).orElse(null);
-        if (department == null) {
-            errors.add("Department with ID '" + departmentId + "' does not exist.");
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new BusinessRuleException("Department with ID '" + departmentId + "' does not exist."));
+        
+        if (!department.isActive()) {
+            throw new BusinessRuleException("Cannot assign student to an inactive department: " + department.getName());
         }
 
         Set<Course> courses = new HashSet<>();
@@ -147,15 +139,16 @@ public class StudentServiceImpl implements StudentService {
             
             if (foundCourses.size() != courseIds.size()) {
                 Set<Long> foundCourseIds = foundCourses.stream().map(Course::getId).collect(Collectors.toSet());
-                List<Long> missingIds = courseIds.stream().filter(id -> !foundCourseIds.contains(id)).toList();
+                List<Long> missingIds = courseIds.stream().filter(id -> !foundCourseIds.contains(id)).collect(Collectors.toList());
                 errors.add("The following course IDs do not exist: " + missingIds);
             }
 
-            if (department != null) {
-                for (Course course : foundCourses) {
-                    if (!course.getDepartment().getId().equals(department.getId())) {
-                        errors.add("Course '" + course.getName() + "' belongs to the '" + course.getDepartment().getName() + "' department, not the '" + department.getName() + "' department.");
-                    }
+            for (Course course : foundCourses) {
+                if (!course.isActive()) {
+                     errors.add("Course '" + course.getName() + "' is inactive and cannot be assigned.");
+                }
+                if (!course.getDepartment().getId().equals(department.getId())) {
+                    errors.add("Course '" + course.getName() + "' belongs to the '" + course.getDepartment().getName() + "' department, not the '" + department.getName() + "' department.");
                 }
             }
             courses.addAll(foundCourses);
@@ -169,12 +162,6 @@ public class StudentServiceImpl implements StudentService {
         return new ValidatedEntities(department, courses);
     }
     
-    /**
-     * {@inheritDoc}
-     * This implementation uses a dynamic {@link Specification} to build a query based on the
-     * filter and isActive status. It then queries the repository with the provided pageable
-     * information and maps the resulting {@link Page} of entities to a page of DTOs.
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<StudentResponseDto> getAllStudents(String filter, Boolean isActive, Pageable pageable) {
@@ -188,11 +175,6 @@ public class StudentServiceImpl implements StudentService {
         return studentPage.map(studentMapper::toDto);
     }
 
-    /**
-     * {@inheritDoc}
-     * This method locates the student by their business ID, sets their `isActive` flag to false,
-     * and persists the change to the database.
-     */
     @Override
     @Transactional
     public void softDeleteStudent(String studentId) {
@@ -203,11 +185,6 @@ public class StudentServiceImpl implements StudentService {
         log.info("Successfully soft-deleted student with studentId: {}", studentId);
     }
 
-    /**
-     * {@inheritDoc}
-     * This method finds the student, inverts their current `isActive` status, saves the updated
-     * entity, and returns the result as a DTO.
-     */
     @Override
     @Transactional
     public StudentResponseDto toggleStudentStatus(String studentId) {
@@ -219,45 +196,25 @@ public class StudentServiceImpl implements StudentService {
         log.info("Successfully toggled status for studentId: {} from {} to {}", studentId, currentStatus, updatedStudent.isActive());
         return studentMapper.toDto(updatedStudent);
     }
-
-
-    /**
-     * {@inheritDoc}
-     * This implementation fetches the filtered list of all students (without pagination)
-     * and delegates the generation of the Excel file to the {@link StudentExportService}.
-     */
+    
     @Override
     @Transactional(readOnly = true)
     public void generateStudentsExcel(String filter, Boolean isActive, HttpServletResponse response) throws IOException {
         log.info("Generating Excel report with filter: '{}', isActive: {}", filter, isActive);
         Specification<Student> spec = createSpecification(filter, isActive);
-        // Fetch all matching students, sorted by ID for consistent ordering.
         List<Student> students = studentRepository.findAll(spec, Sort.by("id"));
         studentExportService.exportToExcel(students, response);
     }
 
-    /**
-     * {@inheritDoc}
-     * This implementation fetches the filtered list of all students (without pagination)
-     * and delegates the generation of the CSV file to the {@link StudentExportService}.
-     */
     @Override
     @Transactional(readOnly = true)
     public void generateStudentsCsv(String filter, Boolean isActive, HttpServletResponse response) throws IOException {
         log.info("Generating CSV report with filter: '{}', isActive: {}", filter, isActive);
         Specification<Student> spec = createSpecification(filter, isActive);
-        // Fetch all matching students, sorted by ID for consistent ordering.
         List<Student> students = studentRepository.findAll(spec, Sort.by("id"));
         studentExportService.exportToCsv(students, response);
     }
     
-    /**
-     * A helper method to find a {@link Student} by their business ID.
-     *
-     * @param studentId The unique business ID to search for.
-     * @return The found {@link Student} entity.
-     * @throws ResourceNotFoundException if no student with the specified ID is found.
-     */
     private Student findStudentByBusinessId(String studentId) {
         log.debug("Searching for student with studentId: {}", studentId);
         return studentRepository.findByStudentId(studentId)
@@ -267,24 +224,12 @@ public class StudentServiceImpl implements StudentService {
                 });
     }
 
-    /**
-     * Creates a {@link Specification} for dynamic querying of {@link Student} entities.
-     * The specification combines predicates for the active status and a multi-field text search.
-     *
-     * @param filter   The text to search for across studentId, firstName, lastName, and email.
-     * @param isActive The active status to filter by (true or false).
-     * @return A {@link Specification} that can be used in repository queries.
-     */
     private Specification<Student> createSpecification(String filter, Boolean isActive) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> mainPredicates = new ArrayList<>();
-
-            // Add predicate for 'isActive' status if provided
             if (isActive != null) {
                 mainPredicates.add(criteriaBuilder.equal(root.get("isActive"), isActive));
             }
-
-            // Add predicates for the general text filter if provided
             if (StringUtils.hasText(filter)) {
                 String pattern = "%" + filter.toLowerCase() + "%";
                 List<Predicate> searchPredicates = new ArrayList<>();
@@ -292,12 +237,8 @@ public class StudentServiceImpl implements StudentService {
                 searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), pattern));
                 searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), pattern));
                 searchPredicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), pattern));
-                
-                // Combine search predicates with an OR condition
                 mainPredicates.add(criteriaBuilder.or(searchPredicates.toArray(new Predicate[0])));
             }
-
-            // Combine all main predicates with an AND condition
             return criteriaBuilder.and(mainPredicates.toArray(new Predicate[0]));
         };
     }
