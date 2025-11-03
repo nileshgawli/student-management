@@ -1,14 +1,13 @@
 package com.aurionpro.studentmanagement.service.impl;
 
-import com.aurionpro.studentmanagement.entity.Course;
-import com.aurionpro.studentmanagement.entity.Student;
-import com.aurionpro.studentmanagement.service.StudentExportService;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
@@ -16,6 +15,20 @@ import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+
+import com.aurionpro.studentmanagement.entity.Course;
+import com.aurionpro.studentmanagement.entity.Student;
+import com.aurionpro.studentmanagement.service.StudentExportService;
+
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 
 /**
  * Implementation of the {@link StudentExportService}.
@@ -106,5 +119,46 @@ public class StudentExportServiceImpl implements StudentExportService {
       }
       log.info("CSV export completed successfully.");
     }
+  }
+  
+  @Override
+  public void exportToPdf(List<Student> students, HttpServletResponse response) throws IOException, JRException {
+      log.info("Starting PDF export for {} students.", students.size());
+
+      // Prepare data for JasperReports
+      List<Map<String, Object>> dataSource = students.stream().map(student -> {
+          Map<String, Object> map = new HashMap<>();
+          map.put("studentId", student.getStudentId());
+          map.put("name", student.getFirstName() + " " + student.getLastName());
+          map.put("email", student.getEmail());
+          map.put("department", student.getDepartment().getName().replace("_", " "));
+          map.put("courses", student.getCourses().stream().map(Course::getName).collect(Collectors.joining(", ")));
+          map.put("status", student.isActive() ? "Active" : "Inactive");
+          return map;
+      }).collect(Collectors.toList());
+
+      // Load and compile the JRXML template
+      InputStream reportStream = getClass().getResourceAsStream("/reports/student-list.jrxml");
+      if (reportStream == null) {
+          log.error("JRXML template not found!");
+          throw new JRException("Resource not found: /reports/student-list.jrxml");
+      }
+      JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+
+      JRBeanCollectionDataSource beanColDataSource = new JRBeanCollectionDataSource(dataSource);
+      
+      Map<String, Object> parameters = new HashMap<>();
+      InputStream logoStream = getClass().getResourceAsStream("/images/aurionpro-logo.png");
+      if (logoStream == null) {
+          log.error("Logo image not found in resources! The report will be generated without a logo.");
+      }
+      parameters.put("LOGO_IMG", logoStream);
+
+      // Fill the report with data and parameters
+      JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, beanColDataSource);
+
+      // Export the report to PDF and write to the response
+      JasperExportManager.exportReportToPdfStream(jasperPrint, response.getOutputStream());
+      log.info("PDF export completed successfully.");
   }
 }

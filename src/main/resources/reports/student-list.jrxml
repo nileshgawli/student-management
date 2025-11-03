@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 6.21.5  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="StudentList" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="c2c8f8e0-2f3b-4f7a-9a9b-1d7c3d2e3f4b">
+	<style name="ColumnHeader" mode="Opaque" forecolor="#FFFFFF" backcolor="#2C3E50" hTextAlign="Center" hImageAlign="Center" vTextAlign="Middle" vImageAlign="Middle" fontSize="11" isBold="true"/>
+	<style name="DetailRowStyle" forecolor="#2C3E50" hTextAlign="Left" hImageAlign="Left" vTextAlign="Middle" vImageAlign="Middle" fontSize="10">
+		<box topPadding="5" leftPadding="5" bottomPadding="5" rightPadding="5">
+			<pen lineWidth="0.25" lineColor="#BDC3C7"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></conditionExpression>
+			<style mode="Opaque" backcolor="#ECF0F1"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="LOGO_IMG" class="java.io.InputStream"/>
+	<field name="studentId" class="java.lang.String"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="email" class="java.lang.String"/>
+	<field name="department" class="java.lang.String"/>
+	<field name="courses" class="java.lang.String"/>
+	<field name="status" class="java.lang.String"/>
+	<title>
+		<band height="80" splitType="Stretch">
+			<image>
+				<reportElement x="5" y="11" width="165" height="40" uuid="a6c5f498-8a71-48e0-911b-8b32c2532728"/>
+				<imageExpression><![CDATA[$P{LOGO_IMG}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="170" y="10" width="460" height="35" forecolor="#2C3E50" uuid="1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="SansSerif" size="24" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Student List Report]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="170" y="45" width="460" height="15" forecolor="#7F8C8D" uuid="f2a7a53c-1b2c-4b5c-8b9a-4d2c7e0a2d3b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="SansSerif" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Academic Year 2024-2025]]></text>
+			</staticText>
+			<textField pattern="MMMMM dd, yyyy">
+				<reportElement x="680" y="63" width="122" height="15" forecolor="#7F8C8D" uuid="a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6"/>
+				<textElement textAlignment="Right">
+					<font size="9" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="79" width="802" height="1" uuid="f5e4d3c2-b1a0-9f8e-7d6c-5b4a3c2d1e0f"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="32" splitType="Stretch">
+			<staticText>
+				<reportElement style="ColumnHeader" x="0" y="0" width="80" height="32" uuid="b1c2d3e4-f5a6-b7c8-d9e0-f1a2b3c4d5e6"/>
+				<box padding="5"/>
+				<text><![CDATA[Student ID]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ColumnHeader" x="80" y="0" width="150" height="32" uuid="c1d2e3f4-a5b6-c7d8-e9f0-a1b2c3d4e5f6"/>
+				<box padding="5"/>
+				<text><![CDATA[Name]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ColumnHeader" x="230" y="0" width="180" height="32" uuid="d1e2f3a4-b5c6-d7e8-f9a0-b1c2d3e4f5a6"/>
+				<box padding="5"/>
+				<text><![CDATA[Email]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ColumnHeader" x="410" y="0" width="120" height="32" uuid="e1f2a3b4-c5d6-e7f8-a9b0-c1d2e3f4a5b6"/>
+				<box padding="5"/>
+				<text><![CDATA[Department]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ColumnHeader" x="530" y="0" width="200" height="32" uuid="f1a2b3c4-d5e6-f7a8-b9c0-d1e2f3a4b5c6"/>
+				<box padding="5"/>
+				<text><![CDATA[Courses]]></text>
+			</staticText>
+			<staticText>
+				<reportElement style="ColumnHeader" x="730" y="0" width="72" height="32" uuid="a2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7"/>
+				<box padding="5"/>
+				<text><![CDATA[Status]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="28" splitType="Stretch">
+			<textField>
+				<reportElement style="DetailRowStyle" x="0" y="0" width="80" height="28" uuid="b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7"/>
+				<textFieldExpression><![CDATA[$F{studentId}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="DetailRowStyle" x="80" y="0" width="150" height="28" uuid="c2d3e4f5-a6b7-c8d9-e0f1-a2b3c4d5e6f7"/>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="DetailRowStyle" x="230" y="0" width="180" height="28" uuid="d2e3f4a5-b6c7-d8e9-f0a1-b2c3d4e5f6a7"/>
+				<textFieldExpression><![CDATA[$F{email}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="DetailRowStyle" x="410" y="0" width="120" height="28" uuid="e2f3a4b5-c6d7-e8f9-a0b1-c2d3e4f5a6b7"/>
+				<textFieldExpression><![CDATA[$F{department}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="DetailRowStyle" x="530" y="0" width="200" height="28" uuid="f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7"/>
+				<textFieldExpression><![CDATA[$F{courses}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement style="DetailRowStyle" x="730" y="0" width="72" height="28" uuid="a3b4c5d6-e7f8-a9b0-c1d2-e3f4a5b6c7d8"/>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="30" splitType="Stretch">
+			<line>
+				<reportElement x="0" y="2" width="802" height="1" forecolor="#BDC3C7" uuid="3d21e8a9-4b6c-482a-8b0e-6f8d7c4a1b0f"/>
+			</line>
+			<textField>
+				<reportElement x="702" y="8" width="100" height="20" forecolor="#7F8C8D" uuid="b3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8"/>
+				<textElement textAlignment="Right">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="8" width="200" height="20" forecolor="#7F8C8D" uuid="0e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b"/>
+				<textElement textAlignment="Left">
+					<font size="9" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Generated by Student Management System]]></text>
+			</staticText>
+		</band>
+	</pageFooter>
+</jasperReport>
