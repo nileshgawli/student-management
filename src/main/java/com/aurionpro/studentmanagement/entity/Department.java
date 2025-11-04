@@ -1,7 +1,17 @@
 package com.aurionpro.studentmanagement.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -41,4 +51,21 @@ public class Department {
     @Column(name = "is_active", nullable = false)
     @Schema(description = "Indicates if the department record is active.", example = "true")
     private boolean isActive = true;
+
+    /**
+     * A list of all courses offered by this department.
+     * This defines a one-to-many relationship where one department can have many courses.
+     * <ul>
+     *   <li><b>mappedBy = "department":</b> Indicates that the {@link Course} entity is the owner of this
+     *       relationship and contains the foreign key in its "department" field.</li>
+     *   <li><b>cascade = CascadeType.ALL:</b> All persistence operations (e.g., save, update, delete)
+     *       on a Department will be cascaded to its associated courses.</li>
+     *   <li><b>orphanRemoval = true:</b> If a {@link Course} is removed from this list, it will be
+     *       deleted from the database.</li>
+     *   <li><b>fetch = FetchType.LAZY:</b> The list of courses will only be loaded from the database
+     *       when it is explicitly accessed.</li>
+     * </ul>
+     */
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Course> courses = new ArrayList<>();
 }
